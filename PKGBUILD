@@ -1,6 +1,6 @@
 # Maintainer: K-Sugar <dd.untainted482@passmail.net>
 pkgname=discord-ducking
-pkgver=1.0.0
+pkgver=1.0.1
 pkgrel=1
 pkgdesc="Discord's 'Attenuation (when others speak)', missing on Linux, for PipeWire"
 arch=('any')
