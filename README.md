@@ -8,7 +8,7 @@ time and comes back when they stop.
 
 It is **signal-triggered**, not call-state-triggered. Audio ducks while people are *actually
 speaking*, not for the whole duration of the call. Discord's own audio is never ducked by its own
-voice — that is guaranteed structurally, not by tuning.
+voice, and that is guaranteed structurally rather than by tuning.
 
 Built and running on CachyOS with PipeWire 1.6.8 / WirePlumber 0.5.15.
 
@@ -49,7 +49,7 @@ editing. This is why the loopback deliberately omits `target.object` and `node.d
 
 - PipeWire + WirePlumber (`pipewire-pulse` for the PulseAudio layer)
 - `easyeffects` (8.x) and `lsp-plugins-lv2`
-- `python-numpy` — **optional**, only for `discord-ducking test` (the two-tone proof).
+- `python-numpy` is **optional**, only for `discord-ducking test` (the two-tone proof).
   Threshold calibration needs nothing beyond the Python standard library.
 - A Discord build whose **Voice & Video → Output Device** selector lists PipeWire sinks
   (the native Arch package does; Flatpak may differ)
@@ -67,6 +67,7 @@ sudo pacman -S --needed python-numpy
 ### As a package (recommended for Arch / CachyOS)
 
 ```bash
+git clone https://github.com/K-Sugar/discord-ducking
 cd discord-ducking
 makepkg -si            # builds from this tree; no remote or tarball needed
 discord-ducking install
@@ -88,63 +89,63 @@ discord-ducking bt-mic on|off|status   Bluetooth mic vs playback quality
 discord-ducking uninstall   full teardown
 ```
 
-Uninstalling: run `discord-ducking uninstall` **before** `pacman -R discord-ducking`,
-since pacman will not remove per-user config.
-
 ### Straight from the repo
 
 ```bash
-git clone <this repo> && cd discord-ducking
+git clone https://github.com/K-Sugar/discord-ducking
+cd discord-ducking
 ./scripts/install.sh
 ```
 
 The installer backs up anything it touches to `~/.local/share/discord-ducking/backup-<timestamp>/`,
-and **merges** into your EasyEffects config rather than overwriting it — an existing effects chain
+and **merges** into your EasyEffects config rather than overwriting it, so an existing effects chain
 and blocklist are preserved.
 
-Then three manual steps:
+### Then three manual steps
+
+These apply to both install methods. The package form is shown first, the from-the-repo form second.
 
 **1. Point Discord at the sink**
 
 Discord → Settings → Voice & Video → **Output Device** → `Discord (ducking source)`
 
-If Discord was already running during the install, **restart it first** — it caches its device list
+If Discord was already running during the install, **restart it first**. It caches its device list
 at startup and will not show the new sink otherwise.
 
 **2. Check it**
 
 ```bash
-./scripts/verify.sh
+discord-ducking verify      # or: ./scripts/verify.sh
 ```
 
-**3. Calibrate the threshold — do not skip this**
+**3. Calibrate the threshold, and do not skip this**
 
 ```bash
-./scripts/measure-sidechain.sh     # run while someone is actually talking
+discord-ducking measure     # or: ./scripts/measure-sidechain.sh
 ```
 
-This is the step people get wrong. See below.
+Run it while someone is actually talking. This is the step people get wrong. See below.
 
 ---
 
 ## Calibration is mandatory, and it is per-machine
 
 The correct compressor threshold depends on your Discord volume, your output device and the
-speaker's mic — it is **not** portable between systems.
+speaker's mic. It is **not** portable between systems.
 
 On the reference machine, measured Discord speech looked like this:
 
 | Metric | Level |
 |---|---|
-| Median (silence / noise floor) | −59.1 dBFS |
-| 95th percentile | −41.8 dBFS |
-| Peak over 16 s of conversation | −34.8 dBFS |
+| Median (silence / noise floor) | -59.1 dBFS |
+| 95th percentile | -41.8 dBFS |
+| Peak over 16 s of conversation | -34.8 dBFS |
 
-The threshold value commonly suggested for this kind of setup is **−30 dB**. Real speech crossed it
-**0.0 % of the time** — the compressor was wired perfectly and simply never triggered. Symptom:
+The threshold value commonly suggested for this kind of setup is **-30 dB**. Real speech crossed it
+**0.0 % of the time**. The compressor was wired perfectly and simply never triggered. Symptom:
 "everything looks right but I hear no difference."
 
-`measure-sidechain.sh` records the real sidechain signal, prints the level distribution, and
+`discord-ducking measure` records the real sidechain signal, prints the level distribution, and
 recommends a threshold midway between your noise floor and your speech level. Apply it with:
 
 ```bash
@@ -153,13 +154,13 @@ sed -i 's/^threshold=.*/threshold=-50/' ~/.config/easyeffects/db/compressorrc
 systemctl --user start easyeffects
 ```
 
-Or just type it into the **Threshold** box in the EasyEffects window — no stopping, no restarting.
-See [Tuning](#tuning) for what every other control on that page does.
+Or just type it into the **Threshold** box in the EasyEffects window, with no stopping and no
+restarting. See [Tuning](#tuning) for what every other control on that page does.
 
 To prove the whole chain end-to-end without needing a second person:
 
 ```bash
-./scripts/test-ducking.sh
+discord-ducking test
 ```
 
 It injects a 440 Hz "music" tone and a 1000 Hz "voice" tone, captures the output, and reports the
@@ -176,10 +177,10 @@ window**, or by editing the config file. The window is easier and safer, so star
 ### In the EasyEffects window
 
 Launch `easyeffects`, stay on the **Output** tab, and click **Compressor** in the effects list.
-Changes apply to live audio immediately and are saved for you — no restart, no file editing.
+Changes apply to live audio immediately and are saved for you. No restart, no file editing.
 
 The **Gain reduction** meter on that page is the fastest tuning tool you have: get someone to
-talk (or run `./scripts/test-ducking.sh` in another terminal) and watch it. If it never moves,
+talk (or run `discord-ducking test` in another terminal) and watch it. If it never moves,
 your threshold is too high. If it never returns to 0, it is too low.
 
 | Control | Config key | What it does |
@@ -189,15 +190,15 @@ your threshold is too high. If it never returns to 0, it is too low.
 | **Attack** | `attack` | How fast the duck engages, in ms. Too slow and the first word gets through at full volume. |
 | **Release** | `release` | How fast the volume comes back, in ms. **The setting most worth your time.** Below ~400 ms it pumps audibly between words; too high and music stays quiet long after the talking stops. |
 | **Knee** | `knee` | How abruptly ducking starts around the threshold. A softer knee makes the onset less noticeable. |
-| **Makeup** | `makeup` | Adds gain back after compression. Leave at 0 — you *want* the level drop. |
+| **Makeup** | `makeup` | Adds gain back after compression. Leave at 0, because you *want* the level drop. |
 | **Compression mode** | `mode` | Must stay **Downward**. Upward or Boosting inverts the effect. |
 | **Sidechain → Type** | `sidechainType` | Must stay **External**. This is what makes the compressor listen to Discord instead of to the music. Changing it breaks the whole design. |
 | **Sidechain → Input device** | `sidechainInputDevice` | Must stay **DiscordSink**. This is where the trigger signal comes from. |
 | **Sidechain → Mode** | `sidechainMode` | **RMS** averages over a short window and tracks perceived loudness; **Peak** reacts to instantaneous spikes and is twitchier on speech. |
 | **Sidechain → Reactivity** | `sidechainReactivity` | Size of that RMS averaging window, in ms. Raise it if brief consonants cause flutter. |
 | **Sidechain → Preamp** | `sidechainPreamp` | Gain applied to the trigger signal only. An alternative to lowering the threshold if a quiet talker never triggers ducking. |
-| **Sidechain → Lookahead** | `sidechainLookahead` | Delays the audio so the duck can start *before* the trigger. Not needed here — the sidechain already taps upstream of the loopback, so the duck leads the voice slightly. |
-| **Sidechain → Listen** | `sidechainListen` | Diagnostic toggle: replaces the output with the trigger signal itself, so you *hear* what the compressor is reacting to. Turn it on and you should hear Discord voice and nothing else — if you hear your own microphone or your music, the sidechain is wired to the wrong source. Turn it back off when done. |
+| **Sidechain → Lookahead** | `sidechainLookahead` | Delays the audio so the duck can start *before* the trigger. Not needed here, because the sidechain already taps upstream of the loopback, so the duck leads the voice slightly. |
+| **Sidechain → Listen** | `sidechainListen` | Diagnostic toggle: replaces the output with the trigger signal itself, so you *hear* what the compressor is reacting to. Turn it on and you should hear Discord voice and nothing else. If you hear your own microphone or your music, the sidechain is wired to the wrong source. Turn it back off when done. |
 
 The two rows marked *must stay* are structural. Everything else is taste.
 
@@ -221,7 +222,7 @@ setup to another machine:
 | `sidechainReactivity` | `10` | ms |
 
 > **Stop the service before hand-editing these files.** A running EasyEffects holds settings in
-> memory and overwrites the file on exit — so your edit silently disappears. This is the reason to
+> memory and overwrites the file on exit, so your edit silently disappears. This is the reason to
 > prefer the window: it has no such trap.
 
 ```bash
@@ -246,12 +247,15 @@ signal-triggered attenuation and matches Windows. Not a bug.
 ## Uninstall
 
 ```bash
-./scripts/uninstall.sh
+discord-ducking uninstall   # or: ./scripts/uninstall.sh
 ```
 
 Removes the drop-ins and the unit, turns the catch-all off, clears the blocklist entries and
-restarts the audio stack. Afterwards, set Discord's Output Device back to your real device — it
-will otherwise point at a sink that no longer exists.
+restarts the audio stack. Afterwards, set Discord's Output Device back to your real device, since
+it will otherwise point at a sink that no longer exists.
+
+If you installed the package, run `discord-ducking uninstall` **before** `pacman -R discord-ducking`,
+because pacman will not remove per-user config.
 
 It deliberately does **not** delete `~/.local/state/wireplumber/stream-properties`, which holds
 saved volume and routing for *every* application on the system.
@@ -261,11 +265,11 @@ saved volume and routing for *every* application on the system.
 ## Troubleshooting
 
 **Everything looks correct but nothing ducks.**
-Almost always the threshold. Run `./scripts/measure-sidechain.sh`. See the calibration section.
+Almost always the threshold. Run `discord-ducking measure`. See the calibration section.
 
 **Discord ducks itself / its audio sounds compressed.**
 The loopback got captured by EasyEffects. The blocklist must contain **`discord_direct_playback`**.
-EasyEffects matches the blocklist against **`node.name`, not `application.name`** — so the node's
+EasyEffects matches the blocklist against **`node.name`, not `application.name`**, so the node's
 `application.name` (`DiscordDirectOut`) will *not* work. If you rename `node.name` in
 `20-discord-loopback.conf`, you must update the blocklist to match or self-ducking returns silently.
 
@@ -275,9 +279,9 @@ Check `useDefaultOutputDevice=true` in `easyeffectsrc`. Without it EasyEffects p
 **`DiscordSink` is missing from Discord's dropdown.**
 **Restart Discord first.** Discord enumerates audio devices through libpulse at startup and caches
 the list, so a sink created (or recreated) while it is running will not appear until it restarts.
-This is the usual cause right after installing, and after any install/uninstall cycle — Discord can
-also end up holding a stale reference to the old sink, showing an incomplete device list until
-restarted.
+This is the usual cause right after installing, and after any install/uninstall cycle, where
+Discord can also end up holding a stale reference to the old sink and showing an incomplete device
+list until restarted.
 
 Only if it is still absent after a restart, set Discord's output to `Default` and install the
 optional `pulse.rules` fallback described in `docs/DESIGN.md` §4.3.
@@ -290,7 +294,7 @@ call.
 Two different causes, with different fixes:
 
 *WirePlumber switched it.* It flips Bluetooth devices to headset mode whenever any application
-opens a capture stream — **even when that app records from a different microphone**. Switch back
+opens a capture stream, **even when that app records from a different microphone**. Switch back
 with `discord-ducking bt-mic off`. To stop it happening at all, enable the optional drop-in:
 
 ```bash
@@ -299,32 +303,17 @@ cp config/wireplumber/wireplumber.conf.d/51-bt-no-autoswitch.conf ~/.config/wire
 systemctl --user restart wireplumber
 ```
 
-Trade-off: your Bluetooth mic then stops being selected automatically. Use it deliberately —
-`discord-ducking bt-mic on` before you need it, `off` afterwards. This is the better setup if you
+Trade-off: your Bluetooth mic then stops being selected automatically. Use it deliberately, with
+`discord-ducking bt-mic on` before you need it and `off` afterwards. This is the better setup if you
 usually use a separate mic but occasionally want the headset one.
 
 *The device connected as a headset.* If `bt-mic status` shows **no A2DP profile at all**, no
-software switch can fix it — the profile was never negotiated. This happens when the device
+software switch can fix it, because the profile was never negotiated. This happens when the device
 connects while an app is already recording. Disconnect and reconnect it with nothing recording.
 
-Note that port names follow the channel layout (`output_FL`/`output_FR` stereo, `output_MONO` mono),
-so anything inspecting the graph must not assume stereo.
-
-**`install` or `uninstall` hangs, and an EasyEffects window appears.**
-Fixed in current versions; if you hit it on an older copy, `kill` the `easyeffects --quit` process
-and the script resumes. Cause: `easyeffects --quit` does not exit when no instance is running — it
-launches a *new* instance, shows its window, and blocks forever. Scripts must only call it when an
-instance actually exists. Note that closing the window is not enough: in service mode EasyEffects
-keeps running with the window hidden.
-
 **No audio at all after installing.**
-A malformed drop-in can stop PipeWire from starting. Run `./scripts/uninstall.sh`, then
+A malformed drop-in can stop PipeWire from starting. Run `discord-ducking uninstall`, then
 `journalctl --user -u pipewire -n 50`.
-
-**Writing your own measurement scripts?**
-`pw-record --target <sink>.monitor` does **not** capture that sink's monitor — it silently falls
-back to the default source (your microphone) and yields plausible but completely wrong numbers.
-Use `pw-record --target <sink> -P 'stream.capture.sink=true'`.
 
 ---
 
@@ -353,8 +342,8 @@ docs/
   BUILD-LOG.md          gated build checklist with results
 ```
 
-`docs/DESIGN.md` §3 is the interesting part: ten documented deviations from the original plan, each
-with the measurement that forced it.
+`docs/DESIGN.md` §3 is the interesting part: every deviation from the original plan, each with the
+measurement that forced it.
 
 ---
 
@@ -364,7 +353,7 @@ with the measurement that forced it.
 - The threshold needs re-calibrating if you substantially change your Discord volume or output
   device chain.
 - `easyeffects.service` hooks `graphical-session.target`, which KDE Plasma activates (verified).
-  Most desktop sessions do. If yours does not, the service simply will not autostart — check with
+  Most desktop sessions do. If yours does not, the service simply will not autostart. Check with
   `systemctl --user is-active graphical-session.target` and fall back to EasyEffects' own
   "start service at login" toggle.
 - Discord screen-share-with-audio is unaffected by the routing change (verified): the capture taps
@@ -375,6 +364,13 @@ with the measurement that forced it.
 
 ---
 
+## Issues and contributions
+
+Bug reports and PRs welcome. If something does not work on your setup, open an issue with the
+output of `discord-ducking verify`.
+
+---
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

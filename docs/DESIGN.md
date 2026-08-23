@@ -62,7 +62,7 @@ Every value below was observed on 2026-08-23, not assumed.
 
 ## 3. Deviations from the source brief
 
-The brief was written before the machine was surveyed. Six of its assumptions do not hold here.
+The brief was written before the machine was surveyed. Several of its assumptions do not hold here.
 
 ### 3.1 There is no stable hardware sink — no device name may be hardcoded
 
