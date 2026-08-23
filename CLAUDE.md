@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Reproduces Discord's Windows-only "Attenuation (when others speak)" on PipeWire. There is **nothing
-to compile** — the project is SPA-JSON/INI config templates plus Bash and stdlib-Python tooling,
-packaged for Arch.
+Reproduces Discord's "Attenuation (when others speak)" — a feature Discord ships on Windows and
+macOS but not on Linux — on PipeWire. There is **nothing to compile** — the project is SPA-JSON/INI
+config templates plus Bash and stdlib-Python tooling, packaged for Arch.
 
 It modifies the user's **live audio system**. A malformed PipeWire drop-in can leave the machine
 with no audio at all, so `scripts/uninstall.sh` is the safety net and must keep working.

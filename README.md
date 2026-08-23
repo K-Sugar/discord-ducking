@@ -2,9 +2,9 @@
 
 **Discord's "Attenuation (when others speak)" for Linux.**
 
-Discord ships automatic audio attenuation on Windows only. This reproduces it on PipeWire: when
-someone talks in a Discord call, your game/music/browser audio drops in real time and comes back
-when they stop.
+Discord ships automatic audio attenuation on Windows and macOS, but not on Linux. This reproduces
+it on PipeWire: when someone talks in a Discord call, your game/music/browser audio drops in real
+time and comes back when they stop.
 
 It is **signal-triggered**, not call-state-triggered. Audio ducks while people are *actually
 speaking*, not for the whole duration of the call. Discord's own audio is never ducked by its own

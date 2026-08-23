@@ -8,9 +8,9 @@ disagree, this document wins — see §3 for every deviation and why).
 
 ## 1. Objective and success criteria
 
-Reproduce Discord's Windows-only "Attenuation (when others speak)" on Linux at the audio-server
-level. When audio is present on Discord's playback stream, all other application audio is
-attenuated in real time; when Discord is silent, it returns to full volume.
+Reproduce Discord's "Attenuation (when others speak)" — shipped on Windows and macOS, absent on
+Linux — at the audio-server level. When audio is present on Discord's playback stream, all other
+application audio is attenuated in real time; when Discord is silent, it returns to full volume.
 
 **Signal-triggered, not call-state-triggered.** Ducking that persists for the whole call duration
 is an explicit non-goal and constitutes a failed implementation.

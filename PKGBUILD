@@ -2,7 +2,7 @@
 pkgname=discord-ducking
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="Discord's Windows-only 'Attenuation (when others speak)', for PipeWire"
+pkgdesc="Discord's 'Attenuation (when others speak)', missing on Linux, for PipeWire"
 arch=('any')
 url="https://github.com/K-Sugar/discord-ducking"
 license=('MIT')
