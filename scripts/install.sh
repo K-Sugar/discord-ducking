@@ -139,7 +139,9 @@ cat <<'MSG'
 ============================================================
  Installed. THREE manual steps remain:
 
- 1. Discord -> Settings -> Voice & Video -> Output Device
+ 1. RESTART DISCORD if it was already running - it caches its
+    audio device list at startup and will not show a new sink.
+    Then: Discord -> Settings -> Voice & Video -> Output Device
        select  "Discord (ducking source)"
 
  2. Play some audio and join a call to confirm routing:

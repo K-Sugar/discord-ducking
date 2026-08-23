@@ -346,7 +346,14 @@ require no change here — nothing hardcodes a device name.
 ### 4.3 Routing Discord into DiscordSink
 
 **Primary — in-app.** Discord → Settings → Voice & Video → Output Device → "Discord (ducking
-source)". Confirmed viable: Discord's playback node already carries an explicit
+source)".
+
+**Discord must be restarted if it was running when the sink was created.** It enumerates audio
+devices via libpulse once at startup and caches the result, so `DiscordSink` will not appear in the
+selector otherwise. The same applies after any uninstall/reinstall cycle: the sink is destroyed and
+recreated, and Discord keeps a stale reference until restarted. Observed 2026-08-23 — the device
+list came back incomplete after a cycle and a restart fixed it. This is Discord/Electron behaviour,
+not something this project can work around. Confirmed viable: Discord's playback node already carries an explicit
 `target.object`, meaning a specific device is selected in-app rather than "Default", so the
 dropdown is authoritative and `DiscordSink` will appear in it once created.
 

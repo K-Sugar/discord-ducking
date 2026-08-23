@@ -105,6 +105,9 @@ Then three manual steps:
 
 Discord → Settings → Voice & Video → **Output Device** → `Discord (ducking source)`
 
+If Discord was already running during the install, **restart it first** — it caches its device list
+at startup and will not show the new sink otherwise.
+
 **2. Check it**
 
 ```bash
@@ -215,8 +218,14 @@ EasyEffects matches the blocklist against **`node.name`, not `application.name`*
 Check `useDefaultOutputDevice=true` in `easyeffectsrc`. Without it EasyEffects pins one device.
 
 **`DiscordSink` is missing from Discord's dropdown.**
-Set Discord's output to `Default` first, then install the optional `pulse.rules` fallback described
-in `docs/DESIGN.md` §4.3.
+**Restart Discord first.** Discord enumerates audio devices through libpulse at startup and caches
+the list, so a sink created (or recreated) while it is running will not appear until it restarts.
+This is the usual cause right after installing, and after any install/uninstall cycle — Discord can
+also end up holding a stale reference to the old sink, showing an incomplete device list until
+restarted.
+
+Only if it is still absent after a restart, set Discord's output to `Default` and install the
+optional `pulse.rules` fallback described in `docs/DESIGN.md` §4.3.
 
 **Bluetooth audio goes mono / sounds bad during calls.**
 Check `discord-ducking bt-mic status`. If the active profile is `headset-head-unit`, the device is

@@ -7,7 +7,9 @@ post_install() {
 
   Then three manual steps:
 
-    1. Discord -> Settings -> Voice & Video -> Output Device
+    1. Restart Discord if it is already running (it caches its audio
+       device list at startup), then:
+       Discord -> Settings -> Voice & Video -> Output Device
           select "Discord (ducking source)"
 
     2. discord-ducking verify
