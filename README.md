@@ -292,10 +292,15 @@ with the measurement that forced it.
 - Discord notification sounds trigger ducking (inherent; matches Windows).
 - The threshold needs re-calibrating if you substantially change your Discord volume or output
   device chain.
-- `easyeffects.service` is verified under KDE Plasma. Other sessions must activate
-  `graphical-session.target`; if yours does not, use EasyEffects' own autostart toggle instead.
+- `easyeffects.service` hooks `graphical-session.target`, which KDE Plasma activates (verified).
+  Most desktop sessions do. If yours does not, the service simply will not autostart — check with
+  `systemctl --user is-active graphical-session.target` and fall back to EasyEffects' own
+  "start service at login" toggle.
 - Discord screen-share-with-audio was not re-verified after the routing change. It taps application
   output nodes directly so it is expected to be unaffected.
+- Bluetooth devices that connect while an app is already recording may negotiate as a headset and
+  offer no A2DP profile at all. `discord-ducking bt-mic status` detects this; only a reconnect
+  fixes it.
 
 ---
 
