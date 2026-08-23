@@ -49,12 +49,15 @@ editing. This is why the loopback deliberately omits `target.object` and `node.d
 
 - PipeWire + WirePlumber (`pipewire-pulse` for the PulseAudio layer)
 - `easyeffects` (8.x) and `lsp-plugins-lv2`
-- `python-numpy` — only for the measurement scripts
+- `python-numpy` — **optional**, only for `discord-ducking test` (the two-tone proof).
+  Threshold calibration needs nothing beyond the Python standard library.
 - A Discord build whose **Voice & Video → Output Device** selector lists PipeWire sinks
   (the native Arch package does; Flatpak may differ)
 
 ```bash
-sudo pacman -S --needed easyeffects lsp-plugins-lv2 python-numpy
+sudo pacman -S --needed easyeffects lsp-plugins-lv2
+# optional, only for `discord-ducking test`:
+sudo pacman -S --needed python-numpy
 ```
 
 ---

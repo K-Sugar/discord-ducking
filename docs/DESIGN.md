@@ -510,6 +510,22 @@ proportional one, which is what matches the Windows behaviour being reproduced.
 hand, stop the service first (`systemctl --user stop easyeffects`), edit, then start — a running
 instance holds settings in memory and overwrites the file on exit.
 
+### 4.4.3 Calibration tooling must not need numpy
+
+`measure-sidechain.sh` is the one step no user may skip (§3.9), so it is written against the Python
+standard library only. Making numpy a hard dependency would pull 49 MiB — plus `cblas` and
+`lapack` — into a 50 KB package, and pacman does not install `optdepends` automatically, so an
+optional numpy would mean the mandatory tool fails on a fresh install. The stdlib version was
+verified to produce byte-identical output to the numpy implementation, and runs in ~370 ms for 16 s
+of stereo audio. Only `test-ducking.sh` still uses numpy, for its FFT, and it is genuinely optional.
+
+**Null-sink silence must be excluded from the noise floor.** `DiscordSink` is a null sink, so with
+no Discord audio its monitor is *exact digital silence* — those windows floor at -240 dBFS and, if
+included, drag the median low enough to produce a meaningless recommendation (observed: a -133 dB
+suggestion). The floor is therefore computed only from windows above -100 dBFS, and when speech and
+floor are closer than 6 dB the recommendation falls back to `speech - 12 dB` rather than a midpoint
+that would sit at speech level and barely trigger.
+
 ## 5. Safety rules for the implementer
 
 - **Never** use `pactl load-module` for anything persistent — those modules vanish on restart.

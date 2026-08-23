@@ -7,7 +7,11 @@ arch=('any')
 url="https://github.com/K-Sugar/discord-ducking"
 license=('MIT')
 depends=('bash' 'python' 'pipewire' 'pipewire-pulse' 'wireplumber' 'easyeffects' 'lsp-plugins-lv2')
-optdepends=('python-numpy: required by "discord-ducking measure" and "test" (threshold calibration)'
+# python-numpy is deliberately NOT a hard dependency: it is 49 MiB (plus cblas
+# and lapack) for a 50 KB package. The mandatory calibration tool
+# (`discord-ducking measure`) is stdlib-only for exactly this reason; only the
+# optional two-tone proof needs numpy for its FFT.
+optdepends=('python-numpy: required by "discord-ducking test" only (two-tone FFT proof)'
             'qpwgraph: visual inspection of the audio graph'
             'pavucontrol: manual stream routing')
 install="${pkgname}.install"
