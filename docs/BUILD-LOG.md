@@ -52,7 +52,10 @@ else. A malformed drop-in leaves the machine with no audio at all.
 - [x] `useDefaultOutputDevice=true` verified surviving round-trips
 - [x] `~/.config/systemd/user/easyeffects.service` installed, enabled + active (Qt6 needs session env; `WantedBy=graphical-session.target`)
 - [x] KDE: unit enabled + active, `graphical-session.target` active, display env exported
-- [ ] **GATE:** unit still starts cleanly in the **Caelestia** session (untested); if Caelestia never activates `graphical-session.target`, use EasyEffects' own autostart toggle there
+- [x] ~~**GATE:** unit starts cleanly in the **Caelestia** session~~ — **N/A: dropped by the user
+  2026-08-23, not a use case.** Never tested, and deliberately so. If it is ever needed, check
+  `systemctl --user is-active graphical-session.target` there; if that session does not activate it,
+  use EasyEffects' own autostart toggle instead.
 - [x] **GATE PASSED:** `DiscordSink:monitor_FL/FR -> ee_soe_compressor:probe_FL/FR`
 - [x] **GATE PASSED:** `easyeffects_sink:monitor -> ee_soe_compressor:input`, output to hardware
 - [x] **GATE PASSED (§3.6/§3.7):** `discord_direct_playback` on HARDWARE, not `easyeffects_sink` — required bisecting the match key
@@ -65,19 +68,23 @@ else. A malformed drop-in leaves the machine with no audio at all.
 - [x] **GATE (instrumented):** -12.12 dB duck at realistic speech level (-37 dBFS trigger); Discord itself unducked
 - [x] **GATE PASSED:** user confirms working on a live call
 
-## Step 8 — Verify R2  (§6.8)
-- [ ] **GATE:** Discord screen-share-with-audio still captures Zen/spotifyd after re-routing
+## Step 8 — Verify R2  (§6.8)  ✅ DONE 2026-08-23
+- [x] **GATE PASSED:** Discord screen-share-with-audio still captures app audio after re-routing —
+  user-confirmed. R2 closed; the capture taps application output nodes directly, so moving those
+  apps onto `easyeffects_sink` does not disturb it.
 
-## Step 9 — Full-cycle test  (§6.9)
-- [ ] Reboot
-- [ ] **GATE:** `DiscordSink` and `easyeffects_sink` both exist with no manual intervention
-- [ ] **GATE:** music/game audio lands on `easyeffects_sink`
-- [ ] **GATE:** Discord lands on `DiscordSink`
-- [ ] **GATE:** someone speaks → other audio ducks, Discord voice does NOT
-- [ ] **GATE:** silence → other audio recovers
-- [ ] **GATE:** quit and restart Discord → routing holds
-- [ ] **GATE:** switch output device mid-session → everything follows
-- [ ] **GATE:** confirm no A2DP→HFP profile switch during a call (separate USB mic should prevent it)
+## Step 9 — Full-cycle test  (§6.9)  ✅ DONE 2026-08-23 — all gates user-confirmed
+- [x] Reboot
+- [x] **GATE:** `DiscordSink` and `easyeffects_sink` both exist with no manual intervention
+- [x] **GATE:** music/game audio lands on `easyeffects_sink`
+- [x] **GATE:** Discord lands on `DiscordSink`
+- [x] **GATE:** someone speaks → other audio ducks, Discord voice does NOT
+- [x] **GATE:** silence → other audio recovers
+- [x] **GATE:** quit and restart Discord → routing holds
+- [x] **GATE:** switch output device mid-session → everything follows
+- [x] **GATE:** no A2DP→HFP profile switch during a call (separate USB mic prevents it).
+  Note: a device that *connects* while an app is already recording can still negotiate as a
+  headset and offer no A2DP profile — `discord-ducking bt-mic status` detects that; reconnect fixes it.
 
 ## Step 10 — Hand back  ✅ DONE 2026-08-23
 - [x] Audited 2026-08-23: all 5 created files covered; `stream-properties` confirmed untouched; no system files modified
@@ -86,16 +93,24 @@ else. A malformed drop-in leaves the machine with no audio at all.
 
 ---
 
-## STATUS 2026-08-23 — FEATURE WORKING, user-confirmed on a live call
+## STATUS 2026-08-23 — COMPLETE
 
-Remaining items all require an action I cannot perform. None block daily use.
+**All gates passed. Feature working, user-confirmed, and running on a second machine.**
 
-- **Step 8 (R2)** — screen-share audio check. Needs a screen-share with audio active.
-  Verify `discord_capture` still picks up app audio, then confirm here.
-- **Step 9 — reboot test: PASSED 2026-08-23.** After a clean boot `verify` reported all PASS with
-  no manual intervention. Success criterion 4 met. (A later FAIL on "loopback NOT linked" turned
-  out to be a bug in verify.sh, which assumed stereo port names; the AirPods were in mono/HFP so
-  the port was `output_MONO`. Fixed — the check is now channel-layout agnostic.)
-- **Caelestia session** — `easyeffects.service` is verified in KDE only. If it does not start
-  there, `graphical-session.target` is likely not activated by that session; fall back to
-  EasyEffects' own autostart toggle for Caelestia.
+Every success criterion from the brief is met:
+
+1. Speech ducks other audio — measured at −12.1 dB with a realistic −37 dBFS trigger, and confirmed
+   by ear on live calls.
+2. Discord is never ducked by its own signal — structural, since it bypasses the compressor.
+3. Added latency on the voice path is negligible; the sidechain taps upstream of the loopback, so
+   the duck engages marginally *ahead* of the audible voice.
+4. Survives reboot with no manual steps.
+5. Survives output-device switching — no device name is hardcoded anywhere.
+6. `scripts/uninstall.sh` tears it down in one command, verified by a full clean-slate cycle.
+
+Shipped beyond the original brief: MIT licensed, packaged for Arch (`makepkg -si`), a
+`discord-ducking` CLI, calibration and health-check tooling, a Bluetooth A2DP/headset toggle, and
+installation confirmed working on a friend's CachyOS machine.
+
+The one item never tested is the Caelestia session check (Step 6), dropped by the user as not a use
+case rather than passed.

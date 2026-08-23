@@ -315,8 +315,8 @@ with the measurement that forced it.
   Most desktop sessions do. If yours does not, the service simply will not autostart — check with
   `systemctl --user is-active graphical-session.target` and fall back to EasyEffects' own
   "start service at login" toggle.
-- Discord screen-share-with-audio was not re-verified after the routing change. It taps application
-  output nodes directly so it is expected to be unaffected.
+- Discord screen-share-with-audio is unaffected by the routing change (verified): the capture taps
+  application output nodes directly, upstream of the effects sink.
 - Bluetooth devices that connect while an app is already recording may negotiate as a headset and
   offer no A2DP profile at all. `discord-ducking bt-mic status` detects this; only a reconnect
   fixes it.
