@@ -221,6 +221,29 @@ pw-record --target <sink-node-name> -P 'stream.capture.sink=true' out.wav
 **Always confirm a capture contains the injected test tone before trusting any level derived from
 it.** Absolute levels that look implausible are usually a wrong capture target, not a real defect.
 
+### 3.11 Discord has TWO playback nodes; only the voice one is routed
+
+Observed 2026-08-23. Discord emits playback on two separate nodes:
+
+| Node | `application.name` | Carries | Routed to |
+|---|---|---|---|
+| voice | `WEBRTC VoiceEngine` | call audio (`media.name=playStream`) | `DiscordSink` |
+| Electron/Chromium | `Chromium` | notification pings, UI sounds | `easyeffects_sink` |
+
+The Chromium node is **transient** — it exists only while a sound is playing, which is why it is
+easy to miss when inspecting the graph.
+
+**This split is desirable and is the intended behaviour.** Notification and UI sounds sit on the
+ducked layer: they are attenuated when someone speaks, and they do **not** themselves trigger
+ducking of your music. This supersedes the original brief's Phase 5 note (and risk R5), which
+predicted that join/leave pings would trigger attenuation — they do not, because they never reach
+`DiscordSink`.
+
+It holds because Discord's in-app **Output Device** selector moves only the WebRTC voice stream;
+the Electron audio node is unaffected by that setting. The `pulse.rules` fallback in §4.3 must
+therefore be constrained by `application.name`, or it would capture the Electron node too and
+reintroduce ping-triggered ducking.
+
 ## 4. Architecture
 
 ```
@@ -344,6 +367,7 @@ File: `~/.config/pipewire/pipewire-pulse.conf.d/50-discord-target.conf`
 pulse.rules = [
   { matches = [
       { application.process.binary = "Discord"
+        application.name           = "WEBRTC VoiceEngine"
         media.class                = "Stream/Output/Audio" }
     ]
     actions = {
@@ -352,6 +376,14 @@ pulse.rules = [
   }
 ]
 ```
+
+**All three constraints are required** (see also §3.11):
+- `application.process.binary` keeps Signal out — it may present the same libwebrtc
+  `application.name` during a call.
+- `media.class` keeps Discord's *microphone capture* stream out.
+- `application.name = "WEBRTC VoiceEngine"` keeps Discord's **Electron/Chromium** audio node out.
+  That node also reports `application.process.binary = "Discord"`, so a rule matching only the
+  binary would drag notification and UI sounds into `DiscordSink` as well.
 
 Matching on `application.process.binary` (not `application.name`) is what keeps Signal out — see
 §3.4. Matching on `media.class` is what keeps Discord's microphone capture stream out. Both
@@ -555,7 +587,7 @@ device mid-session, everything follows.**
 | R2 | `discord_capture` screen-share audio breaks when apps move to `easyeffects_sink` | Medium | Capture taps app output nodes directly, so it most likely survives. Verified explicitly at 6.8, not assumed. |
 | R3 | Malformed drop-in crashes PipeWire, leaving no audio at all | High | Rollback written first (6.0); journal checked after every single restart. |
 | R4 | Bluetooth profile switch renames the sink mid-session | Low | No device name is hardcoded, so nothing to break. The separate USB mic means a call should not force an A2DP→HFP switch; confirmed at 6.9. |
-| R5 | Discord notification pings (join/leave) trigger ducking | None — expected | Inherent to signal-triggered ducking and matches Windows behaviour. Not a bug. |
+| R5 | ~~Discord notification pings trigger ducking~~ | **Does not occur — see §3.11** | Pings come from Discord's separate Electron audio node, which stays on `easyeffects_sink`. They are ducked *by* speech rather than triggering it. Confirmed desirable by the user; the §4.3 fallback rule is constrained to preserve it. |
 | R6 | EasyEffects preset schema differs by version | Low | Configure in GUI, export, use the export as reference. Never hand-author sidechain keys. |
 | R7 | Discord's self-updater changes node properties | Low | The in-app selector (§4.3) is unaffected by property changes; only the `pulse.rules` fallback would need re-checking against `pw-dump`. |
 
