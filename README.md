@@ -1,3 +1,5 @@
+<img src="img/discord-ducking.png" alt="discord-ducking logo" width="96">
+
 # discord-ducking
 
 **Discord's "Attenuation (when others speak)" for Linux.**
