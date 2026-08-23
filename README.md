@@ -81,6 +81,7 @@ discord-ducking install     deploy config into ~/.config, enable the service
 discord-ducking verify      health check (exit 0 = all good)
 discord-ducking measure     measure speech level, recommend a threshold
 discord-ducking test        two-tone end-to-end proof
+discord-ducking bt-mic on|off|status   Bluetooth mic vs playback quality
 discord-ducking uninstall   full teardown
 ```
 
@@ -218,20 +219,32 @@ Set Discord's output to `Default` first, then install the optional `pulse.rules`
 in `docs/DESIGN.md` §4.3.
 
 **Bluetooth audio goes mono / sounds bad during calls.**
-Check `pactl list cards | grep 'Active Profile'`. If it says `headset-head-unit`, the device has
-dropped to HFP (mono, ~24 kHz). WirePlumber switches Bluetooth devices to the headset profile when
-any application opens a capture stream — *even if that application records from a different
-microphone*. Unrelated to ducking, but it degrades everything you hear during a call. If you always
-use a separate mic, disable it in `~/.config/wireplumber/wireplumber.conf.d/51-no-hfp.conf`:
+Check `discord-ducking bt-mic status`. If the active profile is `headset-head-unit`, the device is
+in HSP/HFP: mono, ~24 kHz. Unrelated to ducking, but it degrades everything you hear for the whole
+call.
 
-```
-wireplumber.settings = {
-  bluetooth.autoswitch-to-headset-profile = false
-}
+Two different causes, with different fixes:
+
+*WirePlumber switched it.* It flips Bluetooth devices to headset mode whenever any application
+opens a capture stream — **even when that app records from a different microphone**. Switch back
+with `discord-ducking bt-mic off`. To stop it happening at all, enable the optional drop-in:
+
+```bash
+mkdir -p ~/.config/wireplumber/wireplumber.conf.d
+cp config/wireplumber/wireplumber.conf.d/51-bt-no-autoswitch.conf ~/.config/wireplumber/wireplumber.conf.d/
+systemctl --user restart wireplumber
 ```
 
-Note that port names change with the channel layout (`output_FL`/`output_FR` when stereo,
-`output_MONO` when mono) — anything inspecting the graph must not assume stereo.
+Trade-off: your Bluetooth mic then stops being selected automatically. Use it deliberately —
+`discord-ducking bt-mic on` before you need it, `off` afterwards. This is the better setup if you
+usually use a separate mic but occasionally want the headset one.
+
+*The device connected as a headset.* If `bt-mic status` shows **no A2DP profile at all**, no
+software switch can fix it — the profile was never negotiated. This happens when the device
+connects while an app is already recording. Disconnect and reconnect it with nothing recording.
+
+Note that port names follow the channel layout (`output_FL`/`output_FR` stereo, `output_MONO` mono),
+so anything inspecting the graph must not assume stereo.
 
 **No audio at all after installing.**
 A malformed drop-in can stop PipeWire from starting. Run `./scripts/uninstall.sh`, then
@@ -256,12 +269,14 @@ config/
   systemd/user/easyeffects.service                   graphical-session.target, not default.target
   easyeffects/compressorrc                           compressor + sidechain parameters
   easyeffects/easyeffectsrc.reference                keys install.sh merges (reference only)
+  wireplumber/.../51-bt-no-autoswitch.conf           OPTIONAL: stop BT dropping to headset mode
 scripts/
   install.sh            idempotent installer, backs up and merges
   uninstall.sh          full teardown
   verify.sh             health check; exit 0 = all good
   measure-sidechain.sh  measures real speech level, recommends a threshold
   test-ducking.sh       two-tone end-to-end proof
+  bt-profile.sh         Bluetooth A2DP <-> headset-mic toggle
 docs/
   DESIGN.md             full spec, and every deviation with the evidence behind it
   BUILD-LOG.md          gated build checklist with results

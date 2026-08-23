@@ -28,6 +28,7 @@ usage: discord-ducking <command>
   verify      health-check the setup (exit 0 = all good)
   measure     measure real Discord speech level, recommend a threshold
   test        two-tone end-to-end proof that ducking works
+  bt-mic      on|off|status - Bluetooth headset mic vs A2DP playback quality
   docs        print the path to the design docs
 
 After 'install' there are three manual steps - run 'discord-ducking install'
@@ -43,6 +44,14 @@ case "$cmd" in
   verify)    exec "$ROOT/scripts/verify.sh" "$@" ;;
   measure)   exec "$ROOT/scripts/measure-sidechain.sh" "$@" ;;
   test)      exec "$ROOT/scripts/test-ducking.sh" "$@" ;;
+  bt-mic)
+    sub="${1:-status}"; shift || true
+    case "$sub" in
+      on)  exec "$ROOT/scripts/bt-profile.sh" mic-on  "$@" ;;
+      off) exec "$ROOT/scripts/bt-profile.sh" mic-off "$@" ;;
+      status) exec "$ROOT/scripts/bt-profile.sh" status "$@" ;;
+      *) echo "usage: discord-ducking bt-mic [on|off|status]" >&2; exit 1 ;;
+    esac ;;
   docs)      echo "$ROOT/docs" ;;
   help|-h|--help) usage ;;
   *) echo "discord-ducking: unknown command '$cmd'" >&2; usage >&2; exit 1 ;;
