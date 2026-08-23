@@ -1,0 +1,13 @@
+[soe][Compressor#0]
+attack=5
+knee=-6
+makeup=0
+mode=0
+ratio=24
+release=700
+sidechainInputDevice=DiscordSink
+sidechainMode=1
+sidechainPreamp=0
+sidechainReactivity=10
+sidechainType=2
+threshold=-50

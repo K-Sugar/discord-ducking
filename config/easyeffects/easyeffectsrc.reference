@@ -1,0 +1,23 @@
+# REFERENCE ONLY - do not copy this file over your own easyeffectsrc.
+# scripts/install.sh MERGES these keys into ~/.config/easyeffects/db/easyeffectsrc
+# so that any effects you already use are preserved.
+#
+# Device keys (inputDevice/outputDevice) are deliberately omitted: they are
+# per-machine, and useDefaultOutputDevice=true makes them irrelevant anyway.
+
+[StreamOutputs]
+
+# Routes every non-blocklisted app through the effects sink. This is the
+# catch-all that lets the hardware device stay the default sink.
+processAllOutputs=true
+
+# REQUIRED. Makes EasyEffects follow the default sink instead of pinning one
+# device. Without it, switching outputs silently breaks the chain.
+useDefaultOutputDevice=true
+
+# Matched against node.name -- NOT application.name. See docs/DESIGN.md §3.7.
+#   WEBRTC VoiceEngine      = Discord's playback node
+#   discord_direct_playback = our loopback; omitting it causes self-ducking
+blocklist=Discord,WEBRTC VoiceEngine,discord_direct_playback
+
+plugins=compressor#0

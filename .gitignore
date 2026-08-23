@@ -1,0 +1,5 @@
+# Local capture/measurement artefacts
+*.wav
+/tmp/
+*.bak
+*.log
