@@ -217,6 +217,22 @@ Check `useDefaultOutputDevice=true` in `easyeffectsrc`. Without it EasyEffects p
 Set Discord's output to `Default` first, then install the optional `pulse.rules` fallback described
 in `docs/DESIGN.md` §4.3.
 
+**Bluetooth audio goes mono / sounds bad during calls.**
+Check `pactl list cards | grep 'Active Profile'`. If it says `headset-head-unit`, the device has
+dropped to HFP (mono, ~24 kHz). WirePlumber switches Bluetooth devices to the headset profile when
+any application opens a capture stream — *even if that application records from a different
+microphone*. Unrelated to ducking, but it degrades everything you hear during a call. If you always
+use a separate mic, disable it in `~/.config/wireplumber/wireplumber.conf.d/51-no-hfp.conf`:
+
+```
+wireplumber.settings = {
+  bluetooth.autoswitch-to-headset-profile = false
+}
+```
+
+Note that port names change with the channel layout (`output_FL`/`output_FR` when stereo,
+`output_MONO` when mono) — anything inspecting the graph must not assume stereo.
+
 **No audio at all after installing.**
 A malformed drop-in can stop PipeWire from starting. Run `./scripts/uninstall.sh`, then
 `journalctl --user -u pipewire -n 50`.

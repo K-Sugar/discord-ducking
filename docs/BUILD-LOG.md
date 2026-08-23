@@ -92,7 +92,10 @@ Remaining items all require an action I cannot perform. None block daily use.
 
 - **Step 8 (R2)** — screen-share audio check. Needs a screen-share with audio active.
   Verify `discord_capture` still picks up app audio, then confirm here.
-- **Step 9** — reboot test. The important one: proves the whole thing comes back unattended.
+- **Step 9 — reboot test: PASSED 2026-08-23.** After a clean boot `verify` reported all PASS with
+  no manual intervention. Success criterion 4 met. (A later FAIL on "loopback NOT linked" turned
+  out to be a bug in verify.sh, which assumed stereo port names; the AirPods were in mono/HFP so
+  the port was `output_MONO`. Fixed — the check is now channel-layout agnostic.)
 - **Caelestia session** — `easyeffects.service` is verified in KDE only. If it does not start
   there, `graphical-session.target` is likely not activated by that session; fall back to
   EasyEffects' own autostart toggle for Caelestia.

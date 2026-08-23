@@ -22,13 +22,21 @@ info "default sink: ${HW:-unknown}"
 
 LINKS="$(pw-link -l 2>/dev/null || true)"
 
-if printf '%s' "$LINKS" | grep -A2 '^discord_direct_playback:output_FL' | grep -q "$HW"; then
+# Channel-layout agnostic: ports are output_FL/output_FR on a stereo sink but
+# output_MONO when the sink is mono (e.g. a Bluetooth device in HFP/headset
+# profile). Match ANY discord_direct_playback port block against the default sink.
+if printf '%s\n' "$LINKS" | awk -v hw="$HW" '
+     /^discord_direct_playback:/ { inblk=1; next }
+     /^[^[:space:]]/            { inblk=0 }
+     inblk && index($0, hw)     { found=1 }
+     END                        { exit !found }
+   '; then
   ok "loopback follows the default sink"
 else
   bad "loopback NOT linked to the default sink"
 fi
 
-if printf '%s' "$LINKS" | grep -q 'DiscordSink:monitor_FL'; then
+if printf '%s' "$LINKS" | grep -q 'DiscordSink:monitor'; then
   ok "DiscordSink monitor is linked"
 else
   bad "DiscordSink monitor not linked"
@@ -66,6 +74,14 @@ esac
 grep -q '^useDefaultOutputDevice=true' ~/.config/easyeffects/db/easyeffectsrc 2>/dev/null \
   && ok "useDefaultOutputDevice=true (follows device switches)" \
   || bad "useDefaultOutputDevice not set - output switching will break the chain"
+
+if pactl list cards 2>/dev/null | grep -q 'Active Profile: headset-head-unit'; then
+  printf '\033[33m  WARN\033[0m %s\n' "a Bluetooth device is in HFP/headset profile (mono, ~24 kHz)."
+  info "everything still works, but audio quality is poor while it lasts."
+  info "WirePlumber switches to HFP when any app opens a capture stream, even if"
+  info "that app uses a different microphone. If you always use a separate mic:"
+  info "  bluetooth.autoswitch-to-headset-profile = false   in wireplumber.conf.d"
+fi
 
 TH="$(grep -E '^threshold=' ~/.config/easyeffects/db/compressorrc 2>/dev/null | cut -d= -f2)"
 info "compressor threshold: ${TH:-unset} dB  (calibrate with scripts/measure-sidechain.sh)"
