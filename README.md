@@ -1,8 +1,8 @@
-<img src="img/discord-ducking.png" alt="discord-ducking logo" width="96">
-
-# discord-ducking
-
-**Discord's "Attenuation (when others speak)" for Linux.**
+<div align="center">
+  <img src="img/discord-ducking.png" alt="discord-ducking logo" width="96">
+  <h1>discord-ducking</h1>
+  <p><strong>Discord's "Attenuation (when others speak)" for Linux.</strong></p>
+</div>
 
 Discord ships automatic audio attenuation on Windows and macOS, but not on Linux. This reproduces
 it on PipeWire: when someone talks in a Discord call, your game/music/browser audio drops in real
