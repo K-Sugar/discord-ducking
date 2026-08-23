@@ -153,6 +153,9 @@ sed -i 's/^threshold=.*/threshold=-50/' ~/.config/easyeffects/db/compressorrc
 systemctl --user start easyeffects
 ```
 
+Or just type it into the **Threshold** box in the EasyEffects window — no stopping, no restarting.
+See [Tuning](#tuning) for what every other control on that page does.
+
 To prove the whole chain end-to-end without needing a second person:
 
 ```bash
@@ -167,7 +170,41 @@ independently in a single capture.
 
 ## Tuning
 
-Reference values (`~/.config/easyeffects/db/compressorrc`):
+Everything below lives in one compressor. You can change it two ways: in the **EasyEffects
+window**, or by editing the config file. The window is easier and safer, so start there.
+
+### In the EasyEffects window
+
+Launch `easyeffects`, stay on the **Output** tab, and click **Compressor** in the effects list.
+Changes apply to live audio immediately and are saved for you — no restart, no file editing.
+
+The **Gain reduction** meter on that page is the fastest tuning tool you have: get someone to
+talk (or run `./scripts/test-ducking.sh` in another terminal) and watch it. If it never moves,
+your threshold is too high. If it never returns to 0, it is too low.
+
+| Control | Config key | What it does |
+|---|---|---|
+| **Threshold** | `threshold` | How loud the Discord voice must be before ducking starts. **The one you must calibrate.** Never triggers → lower it. Ducks on keyboard noise → raise it. |
+| **Ratio** | `ratio` | How hard it ducks once triggered. High values give a near fixed-depth duck, which is what Windows does. Lower it for a gentler dip. |
+| **Attack** | `attack` | How fast the duck engages, in ms. Too slow and the first word gets through at full volume. |
+| **Release** | `release` | How fast the volume comes back, in ms. **The setting most worth your time.** Below ~400 ms it pumps audibly between words; too high and music stays quiet long after the talking stops. |
+| **Knee** | `knee` | How abruptly ducking starts around the threshold. A softer knee makes the onset less noticeable. |
+| **Makeup** | `makeup` | Adds gain back after compression. Leave at 0 — you *want* the level drop. |
+| **Compression mode** | `mode` | Must stay **Downward**. Upward or Boosting inverts the effect. |
+| **Sidechain → Type** | `sidechainType` | Must stay **External**. This is what makes the compressor listen to Discord instead of to the music. Changing it breaks the whole design. |
+| **Sidechain → Input device** | `sidechainInputDevice` | Must stay **DiscordSink**. This is where the trigger signal comes from. |
+| **Sidechain → Mode** | `sidechainMode` | **RMS** averages over a short window and tracks perceived loudness; **Peak** reacts to instantaneous spikes and is twitchier on speech. |
+| **Sidechain → Reactivity** | `sidechainReactivity` | Size of that RMS averaging window, in ms. Raise it if brief consonants cause flutter. |
+| **Sidechain → Preamp** | `sidechainPreamp` | Gain applied to the trigger signal only. An alternative to lowering the threshold if a quiet talker never triggers ducking. |
+| **Sidechain → Lookahead** | `sidechainLookahead` | Delays the audio so the duck can start *before* the trigger. Not needed here — the sidechain already taps upstream of the loopback, so the duck leads the voice slightly. |
+| **Sidechain → Listen** | `sidechainListen` | Diagnostic toggle: replaces the output with the trigger signal itself, so you *hear* what the compressor is reacting to. Turn it on and you should hear Discord voice and nothing else — if you hear your own microphone or your music, the sidechain is wired to the wrong source. Turn it back off when done. |
+
+The two rows marked *must stay* are structural. Everything else is taste.
+
+### In the config file
+
+Reference values (`~/.config/easyeffects/db/compressorrc`), for scripting or for copying a known-good
+setup to another machine:
 
 | Setting | Value | Notes |
 |---|---|---|
@@ -175,16 +212,31 @@ Reference values (`~/.config/easyeffects/db/compressorrc`):
 | `ratio` | `24` | high ratio ⇒ near fixed-depth duck, like Windows |
 | `attack` | `5` | ms |
 | `release` | `700` | ms; below ~400 pumps between words |
+| `knee` | `-6` | dB |
+| `makeup` | `0` | dB |
+| `mode` | `0` | Downward |
 | `sidechainType` | `2` | External |
+| `sidechainInputDevice` | `DiscordSink` | the trigger source |
 | `sidechainMode` | `1` | RMS |
 | `sidechainReactivity` | `10` | ms |
 
-- Quiet talkers do not trigger it → **lower** the threshold
+> **Stop the service before hand-editing these files.** A running EasyEffects holds settings in
+> memory and overwrites the file on exit — so your edit silently disappears. This is the reason to
+> prefer the window: it has no such trap.
+
+```bash
+systemctl --user stop easyeffects
+sed -i 's/^release=.*/release=700/' ~/.config/easyeffects/db/compressorrc
+systemctl --user start easyeffects
+```
+
+### Quick reference
+
+- Quiet talkers do not trigger it → **lower** the threshold (or raise sidechain preamp)
 - Background noise / keyboard ducks constantly → **raise** it
 - Audible pumping between words → **lengthen** release
-
-> **Stop the service before hand-editing these files.** A running EasyEffects holds settings in
-> memory and overwrites the file on exit.
+- First word slips through at full volume → **shorten** attack
+- Duck is too aggressive → **lower** the ratio
 
 Discord's join/leave notification pings will also trigger ducking. That is inherent to
 signal-triggered attenuation and matches Windows. Not a bug.
