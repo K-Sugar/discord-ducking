@@ -246,6 +246,13 @@ connects while an app is already recording. Disconnect and reconnect it with not
 Note that port names follow the channel layout (`output_FL`/`output_FR` stereo, `output_MONO` mono),
 so anything inspecting the graph must not assume stereo.
 
+**`install` or `uninstall` hangs, and an EasyEffects window appears.**
+Fixed in current versions; if you hit it on an older copy, `kill` the `easyeffects --quit` process
+and the script resumes. Cause: `easyeffects --quit` does not exit when no instance is running — it
+launches a *new* instance, shows its window, and blocks forever. Scripts must only call it when an
+instance actually exists. Note that closing the window is not enough: in service mode EasyEffects
+keeps running with the window hidden.
+
 **No audio at all after installing.**
 A malformed drop-in can stop PipeWire from starting. Run `./scripts/uninstall.sh`, then
 `journalctl --user -u pipewire -n 50`.

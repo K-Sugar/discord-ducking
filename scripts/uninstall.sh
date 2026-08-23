@@ -3,6 +3,28 @@
 # Safe to run at any point, including before anything has been installed.
 set -euo pipefail
 
+# Stop EasyEffects, whether it runs under systemd or was launched manually.
+#
+# CRITICAL: `easyeffects --quit` does NOT exit when no instance is running --
+# it LAUNCHES a fresh instance (window and all) and then blocks forever. Calling
+# it unconditionally hangs the script. Only invoke it when an instance actually
+# exists, cap it with `timeout` regardless, and fall back to `pkill -x`
+# (exact process name -- never `pkill -f`, whose pattern can match this script).
+stop_easyeffects() {
+  systemctl --user stop easyeffects.service 2>/dev/null || true
+  if pgrep -x easyeffects >/dev/null 2>&1; then
+    timeout 10 easyeffects --quit >/dev/null 2>&1 || true
+    for _ in 1 2 3 4 5; do
+      pgrep -x easyeffects >/dev/null 2>&1 || break
+      sleep 1
+    done
+  fi
+  if pgrep -x easyeffects >/dev/null 2>&1; then
+    pkill -x easyeffects 2>/dev/null || true
+    sleep 1
+  fi
+}
+
 echo "==> Removing PipeWire drop-ins"
 rm -f ~/.config/pipewire/pipewire.conf.d/10-discord-sink.conf
 rm -f ~/.config/pipewire/pipewire.conf.d/20-discord-loopback.conf
@@ -13,12 +35,9 @@ systemctl --user disable --now easyeffects.service 2>/dev/null || true
 rm -f ~/.config/systemd/user/easyeffects.service
 systemctl --user daemon-reload
 
-# Also stop any EasyEffects started OUTSIDE systemd (manual launch / setsid).
-# systemctl cannot see those, and a stray instance flushes its in-memory
-# settings on exit -- silently undoing the revert below. Quit must happen
-# BEFORE the edit so the flush lands first.
-easyeffects --quit >/dev/null 2>&1 || true
-sleep 2
+# Stop any instance started outside systemd too: a stray one flushes its
+# in-memory settings on exit and would silently undo the revert below.
+stop_easyeffects
 
 echo "==> Reverting EasyEffects settings (catch-all off, blocklist cleared)"
 python3 - <<'PY' 2>/dev/null || true

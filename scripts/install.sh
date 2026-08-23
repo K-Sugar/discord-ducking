@@ -12,6 +12,28 @@ warn() { printf '\033[33m  ! %s\033[0m\n' "$*"; }
 ok()   { printf '\033[32m  ok %s\033[0m\n' "$*"; }
 die()  { printf '\033[31m  !! %s\033[0m\n' "$*" >&2; exit 1; }
 
+# Stop EasyEffects, whether it runs under systemd or was launched manually.
+#
+# CRITICAL: `easyeffects --quit` does NOT exit when no instance is running --
+# it LAUNCHES a fresh instance (window and all) and then blocks forever. Calling
+# it unconditionally hangs the script. Only invoke it when an instance actually
+# exists, cap it with `timeout` regardless, and fall back to `pkill -x`
+# (exact process name -- never `pkill -f`, whose pattern can match this script).
+stop_easyeffects() {
+  systemctl --user stop easyeffects.service 2>/dev/null || true
+  if pgrep -x easyeffects >/dev/null 2>&1; then
+    timeout 10 easyeffects --quit >/dev/null 2>&1 || true
+    for _ in 1 2 3 4 5; do
+      pgrep -x easyeffects >/dev/null 2>&1 || break
+      sleep 1
+    done
+  fi
+  if pgrep -x easyeffects >/dev/null 2>&1; then
+    pkill -x easyeffects 2>/dev/null || true
+    sleep 1
+  fi
+}
+
 say "Checking dependencies"
 for c in pipewire wireplumber pactl pw-link easyeffects; do
   command -v "$c" >/dev/null || die "missing '$c'. Install with: sudo pacman -S --needed easyeffects lsp-plugins-lv2"
@@ -39,9 +61,7 @@ ok "10-discord-sink.conf, 20-discord-loopback.conf"
 
 say "Stopping EasyEffects before touching its config"
 # A running instance keeps settings in memory and overwrites the file on exit.
-systemctl --user stop easyeffects.service 2>/dev/null || true
-easyeffects --quit >/dev/null 2>&1 || true
-sleep 2
+stop_easyeffects
 ok "stopped"
 
 say "Merging EasyEffects settings (existing effects preserved)"
