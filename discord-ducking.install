@@ -1,0 +1,46 @@
+post_install() {
+  cat <<'MSG'
+
+  discord-ducking installed system-wide. Config is per-user, so now run:
+
+      discord-ducking install
+
+  Then three manual steps:
+
+    1. Discord -> Settings -> Voice & Video -> Output Device
+          select "Discord (ducking source)"
+
+    2. discord-ducking verify
+
+    3. discord-ducking measure        # while someone is TALKING in a call
+       CALIBRATE THE THRESHOLD. It is machine-specific -- the commonly
+       suggested -30 dB never triggers on some systems, where real speech
+       peaks around -35 dBFS. Skipping this is the #1 cause of
+       "everything looks right but nothing ducks".
+
+  Proof it works:   discord-ducking test
+  Remove:           discord-ducking uninstall   (before pacman -R)
+  Docs:             /usr/share/doc/discord-ducking/
+
+MSG
+}
+
+post_upgrade() {
+  cat <<'MSG'
+
+  discord-ducking upgraded. To apply changed templates to your user config:
+      discord-ducking install
+  Your compressor threshold is preserved.
+
+MSG
+}
+
+pre_remove() {
+  cat <<'MSG'
+
+  Note: per-user config in ~/.config is NOT removed by pacman.
+  Run this first if you have not already:
+      discord-ducking uninstall
+
+MSG
+}

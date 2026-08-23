@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# discord-ducking - front-end for the Discord voice ducking setup.
+#
+# Config lives in the user's home, so a pacman package cannot place it there
+# directly. The package ships templates + these scripts; this command deploys
+# them into ~/.config for the invoking user.
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+PREFIX="$(dirname "$(dirname "$SELF")")"
+ROOT=""
+# 1) repo checkout      : <repo>/bin/..        -> <repo>/scripts
+# 2) installed, any prefix: /usr/bin/..        -> /usr/share/discord-ducking
+# 3) absolute fallback
+for cand in "$PREFIX" "$PREFIX/share/discord-ducking" /usr/share/discord-ducking; do
+  if [ -d "$cand/scripts" ]; then ROOT="$cand"; break; fi
+done
+[ -n "$ROOT" ] || { echo "discord-ducking: cannot locate scripts/ (looked in /usr/share/discord-ducking)" >&2; exit 1; }
+
+usage() {
+  cat <<USAGE
+discord-ducking - Discord "attenuation when others speak" for PipeWire
+
+usage: discord-ducking <command>
+
+  install     deploy config into ~/.config and enable the service
+  uninstall   remove everything and restore stock behaviour
+  verify      health-check the setup (exit 0 = all good)
+  measure     measure real Discord speech level, recommend a threshold
+  test        two-tone end-to-end proof that ducking works
+  docs        print the path to the design docs
+
+After 'install' there are three manual steps - run 'discord-ducking install'
+and read the notes it prints. Calibrating the threshold with 'measure' is
+NOT optional: the correct value is machine-specific.
+USAGE
+}
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  install)   exec "$ROOT/scripts/install.sh" "$@" ;;
+  uninstall) exec "$ROOT/scripts/uninstall.sh" "$@" ;;
+  verify)    exec "$ROOT/scripts/verify.sh" "$@" ;;
+  measure)   exec "$ROOT/scripts/measure-sidechain.sh" "$@" ;;
+  test)      exec "$ROOT/scripts/test-ducking.sh" "$@" ;;
+  docs)      echo "$ROOT/docs" ;;
+  help|-h|--help) usage ;;
+  *) echo "discord-ducking: unknown command '$cmd'" >&2; usage >&2; exit 1 ;;
+esac

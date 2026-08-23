@@ -61,6 +61,34 @@ sudo pacman -S --needed easyeffects lsp-plugins-lv2 python-numpy
 
 ## Install
 
+### As a package (recommended for Arch / CachyOS)
+
+```bash
+cd discord-ducking
+makepkg -si            # builds from this tree; no remote or tarball needed
+discord-ducking install
+```
+
+This installs the tooling to `/usr/share/discord-ducking` with a `discord-ducking`
+command, and pulls in `easyeffects` / `lsp-plugins-lv2` as real package dependencies.
+
+Configuration lives in your home directory, which pacman must not write to, so
+`discord-ducking install` is the separate per-user step. Everything is available as
+subcommands:
+
+```
+discord-ducking install     deploy config into ~/.config, enable the service
+discord-ducking verify      health check (exit 0 = all good)
+discord-ducking measure     measure speech level, recommend a threshold
+discord-ducking test        two-tone end-to-end proof
+discord-ducking uninstall   full teardown
+```
+
+Uninstalling: run `discord-ducking uninstall` **before** `pacman -R discord-ducking`,
+since pacman will not remove per-user config.
+
+### Straight from the repo
+
 ```bash
 git clone <this repo> && cd discord-ducking
 ./scripts/install.sh
@@ -203,6 +231,9 @@ Use `pw-record --target <sink> -P 'stream.capture.sink=true'`.
 ## Layout
 
 ```
+PKGBUILD                  builds from the working tree; makepkg -si
+discord-ducking.install   post-install notes shown by pacman
+bin/discord-ducking       CLI front-end (subcommand dispatcher)
 config/
   pipewire/pipewire.conf.d/10-discord-sink.conf      null sink
   pipewire/pipewire.conf.d/20-discord-loopback.conf  loopback (follows default sink)
@@ -234,3 +265,9 @@ with the measurement that forced it.
   `graphical-session.target`; if yours does not, use EasyEffects' own autostart toggle instead.
 - Discord screen-share-with-audio was not re-verified after the routing change. It taps application
   output nodes directly so it is expected to be unaffected.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

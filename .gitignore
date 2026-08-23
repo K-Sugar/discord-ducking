@@ -3,3 +3,7 @@
 /tmp/
 *.bak
 *.log
+pkg/
+src/
+*.pkg.tar.zst
+*.pkg.tar.xz
